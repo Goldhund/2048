@@ -1,0 +1,254 @@
+<html>
+<head>
+	<title>2048</title>
+	<meta charset="utf-8">
+	<script type="text/javascript">
+		var idList = [	"11","12","13","14",
+				"21","22","23","24",
+				"31","32","33","34",
+				"41","42","43","44"];
+		var direction = {	up: 1,
+					right: 2,
+					down: 3,
+					left: 4};
+		var score = 0;
+		function getRandomFreeCellId(){
+			var freeOrNot =[0,0,0,0,
+					0,0,0,0,
+					0,0,0,0,
+					0,0,0,0];
+			var freeCount = 0;
+			for (var i = 0; i < 16; i++) {
+				var cell = document.getElementById(idList[i]);
+				if (cell.innerHTML === "") {
+					freeOrNot[i] = 1;
+					freeCount = freeCount + 1;
+				}
+			}
+			var freeList = new Array(freeCount);
+
+			var j = 0;
+			for (var i = 0; i < 16; i++) {
+				if (freeOrNot[i] == 1) {
+					freeList[j] = idList[i];
+					j = j+1;
+				}
+			}
+
+			var random = Math.trunc(Math.random() * freeCount);
+			return freeList[random];
+		}
+		function insertTwoRandomCells() {
+			document.getElementById(getRandomFreeCellId()).innerHTML = getRandomNewCellValue();
+			document.getElementById(getRandomFreeCellId()).innerHTML = getRandomNewCellValue();
+		}
+		function getRandomNewCellValue() {
+			if (Math.random() > (4/5)) {
+				return 4;
+			}
+			return 2;
+		}
+		function registerButtons() {
+			var upButtons = document.getElementsByClassName("button up");
+			for (var i = 0; i < upButtons.length; i++) {
+				upButtons[i].addEventListener('click', moveUp);
+			}
+			var downButtons = document.getElementsByClassName("button down");
+			for (var i = 0; i < downButtons.length; i++) {
+				downButtons[i].addEventListener('click', moveDown);
+			}
+			var leftButtons = document.getElementsByClassName("button left");
+			for (var i = 0; i < leftButtons.length; i++) {
+				leftButtons[i].addEventListener('click', moveLeft);
+			}
+			var rightButtons = document.getElementsByClassName("button right");
+			for (var i = 0; i < rightButtons.length; i++) {
+				rightButtons[i].addEventListener('click', moveRight);
+			}
+		}
+		function moveUp() {
+			move(direction.up);
+		}
+		function moveDown() {
+			move(direction.down);
+		}
+		function moveLeft() {
+			move(direction.left);
+		}
+		function moveRight() {
+			move(direction.right);
+		}
+		function moveCellsInLine(lineNumber, movedTo) {
+			var oldCells = getCellsFromLineInDirection(lineNumber, movedTo);
+
+			var newCells = [0,0,0,0];
+			var cellIsAlreadyAdded = false;
+			for (var i = 3; i >= 0; i--) {
+				if (oldCells[i] == 0) {
+					continue;
+				}
+				var highestNotZeroCell = getHighestNotZeroCell(newCells);
+				if (newCells[highestNotZeroCell] == oldCells[i] && !cellIsAlreadyAdded) {
+					newCells[highestNotZeroCell] *= 2;
+					addToScore(newCells[highestNotZeroCell]);
+					cellIsAlreadyAdded = true;
+					continue;
+				} else {
+					newCells[highestNotZeroCell - 1] = oldCells[i];
+					cellIsAlreadyAdded = false;
+					continue;
+				}
+			}
+
+			var lineIds = getLineIds(lineNumber, movedTo);
+			for (var i = 0; i < 4; i++) {
+				if (newCells[i] == 0) {
+					document.getElementById(lineIds[i]).innerHTML = "";
+				} else {
+					document.getElementById(lineIds[i]).innerHTML = newCells[i];
+				}
+			}
+
+			for (var i = 0; i < 4; i++) {
+				if (oldCells[i] != newCells[i])
+					return true;
+			}
+			return false;
+		}
+		function getHighestNotZeroCell(line) {
+			for (var i = line.length - 1; i >= 0; i--) {
+				if (line[i] == 0) {
+					return i + 1;
+				}
+			}
+		}
+		function getCellsFromLineInDirection(lineNumber, movedTo) {
+			var ids = getLineIds(lineNumber, movedTo);
+			var cells = new Array(4);
+			for (var i = 0; i < 4; i++) {
+				cells[i] = +document.getElementById(ids[i]).innerHTML;
+			}
+			return cells;
+		}
+		function getLineIds(lineNumber, movedTo) {
+			if (movedTo == direction.up || movedTo == direction.down) {
+				return getColumnIdsInDirection(lineNumber, movedTo);
+			} else {
+				return getRowIdsInDirection(lineNumber, movedTo);
+			}
+		}
+		function getColumnIdsInDirection(columnNumber, movedTo) {
+			var ids = new Array(4);
+			if (movedTo == direction.down) {
+				for (var i = 0; i < 4; i++) {
+					ids[i] = (i+1) + "" + columnNumber;
+				}
+			} else {
+				for (var i = 0; i < 4; i++) {
+					ids[i] = (4-i) + "" + columnNumber;
+				}
+			}
+			return ids;
+		}
+		function getRowIdsInDirection(rowNumber, movedTo) {
+			var ids = new Array(4);
+			if (movedTo == direction.right) {
+				for (var i = 0; i < 4; i++) {
+					ids[i] = rowNumber + "" + (i+1);
+				}
+			} else {
+				for (var i = 0; i < 4; i++) {
+					ids[i] = rowNumber + "" + (4-i);
+				}
+			}
+			return ids;
+		}
+		function emptyCells() {
+			for (var i = 0; i < 16; i++) {
+				document.getElementById(idList[i]).innerHTML = "";
+			}
+		}
+		function moveAllLines(movedTo) {
+			var somethingChangedInAllLines = false;
+			for (var lineNumber = 1; lineNumber < 5; lineNumber++) {
+				var somethingChangedInThisLine = moveCellsInLine(lineNumber, movedTo);
+				if (somethingChangedInThisLine)
+					somethingChangedInAllLines = true;
+			}
+			return somethingChangedInAllLines;
+		}
+		function move(movedTo) {
+			var somethingChanged;
+			somethingChanged = moveAllLines(movedTo);
+			if (somethingChanged)
+				document.getElementById(getRandomFreeCellId()).innerHTML = getRandomNewCellValue();
+		}
+		function keyPressed(e) {
+			var unicode = e.keyCode ? e.keyCode : e.charCode;
+			switch (unicode) {
+				case 37:
+					move(direction.left);
+					break;
+				case 38:
+					move(direction.up);
+					break;
+				case 39:
+					move(direction.right);
+					break;
+				case 40:
+					move(direction.down);
+					break;
+			}
+		}
+		function registerKeyEvents() {
+			document.onkeypress = keyPressed;
+		}
+		function startGame() {
+			registerButtons();
+			registerKeyEvents();
+			emptyCells();
+			score = 0;
+			insertTwoRandomCells();
+		}
+		function addToScore(toAdd) {
+			score += toAdd;
+			document.getElementById("score").innerHTML = score;
+		}
+	</script>
+	<style>
+		table {
+			border-spacing: 0;
+			border-collapse: collapse;
+		}
+		td {
+			padding: 0;
+		}
+		.cell {
+			width: 30px;
+			height: 30px;
+			background: white;
+			border: 3px solid grey;
+			text-align: center;
+		}
+		.button {
+			width: 30px;
+			height: 30px;
+			background: lightblue;
+		}
+	</style>
+</head>
+<body>
+	<table>
+		<tr><td></td><td class="button up"></td><td class="button up"></td><td class="button up"></td><td class="button up"></td><td></td></tr>
+		<tr><td class="button left"></td><td id="11" class="cell">4</td><td id="12" class="cell"></td><td id="13" class="cell"></td><td id="14" class="cell"></td><td class="button right"></td></tr>
+		<tr><td class="button left"></td><td id="21" class="cell">2</td><td id="22" class="cell"></td><td id="23" class="cell"></td><td id="24" class="cell"></td><td class="button right"></td></tr>
+		<tr><td class="button left"></td><td id="31" class="cell">0</td><td id="32" class="cell"></td><td id="33" class="cell"></td><td id="34" class="cell"></td><td class="button right"></td></tr>
+		<tr><td class="button left"></td><td id="41" class="cell">0</td><td id="42" class="cell"></td><td id="43" class="cell"></td><td id="44" class="cell"></td><td class="button right"></td></tr>
+		<tr><td></td><td class="button down"></td><td class="button down"></td><td class="button down"></td><td class="button down"></td><td></td></tr>
+	</table>
+	<p>Punkte: <span id="score"></span></p>
+	<script type="text/javascript">
+		startGame();
+	</script>
+</body>
+</html>
